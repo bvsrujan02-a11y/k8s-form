@@ -1,0 +1,143 @@
+apiVersion: v1
+data:
+  app.js: |+
+    const form = document.getElementById("form");
+    const output = document.getElementById("output");
+    let api = false;
+    let records = [];
+
+    async function init() {
+      try {
+        const response = await fetch("/api/records");
+        if (response.ok) {
+          api = true;
+          records = await response.json();
+          render();
+        }
+      } catch (_) {}
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;",
+        '"': "&quot;", "'": "&#39;"
+      })[ch]);
+    }
+
+    function render() {
+      output.innerHTML = records.map(r => `
+        <div>
+          <b>${escapeHtml(r.name)}</b> — ${escapeHtml(r.email)}
+          <p>${escapeHtml(r.notes)}</p>
+          <button type="button" onclick="editRecord('${r.id}')">Edit</button>
+          <button type="button" onclick="deleteRecord('${r.id}')">Delete</button>
+        </div>
+      `).join("");
+    }
+
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+
+      const id = document.getElementById("recordId")?.value || "";
+      const data = {
+        name: document.getElementById("name").value,
+        email: document.getElementById("email").value,
+        notes: document.getElementById("notes").value
+      };
+
+      if (api) {
+        const response = await fetch(
+          id ? `/api/records/${id}` : "/api/records",
+          {
+            method: id ? "PUT" : "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(data)
+          }
+        );
+        if (!response.ok) return alert("Unable to save record");
+        records = await (await fetch("/api/records")).json();
+        render();
+      } else {
+        output.innerHTML = `
+          <p>Name: ${escapeHtml(data.name)}</p>
+          <p>Email: ${escapeHtml(data.email)}</p>
+          <p>Notes: ${escapeHtml(data.notes)}</p>`;
+      }
+
+      form.reset();
+      const hidden = document.getElementById("recordId");
+      if (hidden) hidden.value = "";
+    });
+
+    window.editRecord = id => {
+      const r = records.find(x => x.id === id);
+      if (!r) return;
+      document.getElementById("recordId").value = r.id;
+      document.getElementById("name").value = r.name;
+      document.getElementById("email").value = r.email;
+      document.getElementById("notes").value = r.notes;
+    };
+
+    window.deleteRecord = async id => {
+      if (!confirm("Delete this record?")) return;
+      const response = await fetch(`/api/records/${id}`, {method: "DELETE"});
+      if (!response.ok) return alert("Unable to delete record");
+      records = await (await fetch("/api/records")).json();
+      render();
+    };
+
+    init();
+
+  index.html: |+
+    DOCTYPE html>
+    <html>
+    <head>
+      <title>Contact Form</title>
+      <link rel="stylesheet" href="/style.css">
+    </head>
+    <body>
+      <h1>Contact Form</h1>
+
+      <form id="form">
+        <input id="name" placeholder="Name" required>
+        <input id="email" type="email" placeholder="Email">
+        <textarea id="notes" placeholder="Notes"></textarea>
+        <button type="submit">Show Details</button>
+      </form>
+
+      <h2>Details</h2>
+      <div id="output"></div>
+
+      <script src="/app.js"></script>
+    </body>
+    </html
+
+  style.css: |+
+    4. frontend/style.css
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f4f6f9;
+    }
+
+    input, textarea, button {
+      box-sizing: border-box;
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+    }
+
+    button {
+      background: #2459c4;
+      color: white;
+      border: 0;
+      cursor: pointer;
+    }
+
+kind: ConfigMap
+metadata:
+  name: form-frontend
+  namespace: form-demo
