@@ -1,0 +1,24 @@
+4. frontend/style.css
+body {
+  font-family: Arial, sans-serif;
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 20px;
+  background: #f4f6f9;
+}
+
+input, textarea, button {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+button {
+  background: #2459c4;
+  color: white;
+  border: 0;
+  cursor: pointer;
+}
+
